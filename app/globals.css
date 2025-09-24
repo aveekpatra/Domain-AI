@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --background: #05060a;
+  --foreground: #f8fafc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #05060a;
+    --foreground: #f8fafc;
+  }
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Glassmorphic helpers */
+.glass-card {
+  @apply border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_8px_40px_-10px_rgba(0,0,0,0.5)];
+}
+
+/* Light glass card (for white sections) */
+.glass-card-light {
+  @apply border border-slate-200 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_-12px_rgba(2,6,23,0.2)];
+}
+
+/* Subtle dot grid background */
+.bg-dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Shimmer effect for CTAs */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transform: translateX(-100%);
+}
+.shimmer:hover::after {
+  animation: shimmer 1.2s ease forwards;
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Decorative animations */
+/* Spin gradient angle without rotating the element */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
+@keyframes arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+/* Rainbow rotating ring wrapper */
+.btn-rainbow { position: relative; display:inline-flex; overflow: visible; padding: 2px; background: conic-gradient(from var(--angle), rgba(6,182,212,0.45), rgba(59,130,246,0.45), rgba(139,92,246,0.45), rgba(244,63,94,0.45), rgba(245,158,11,0.45), rgba(6,182,212,0.45)); animation: spin-angle 8s linear infinite; }
+.btn-rainbow::before { content: none; }
+.btn-rainbow::after { content: ""; position: absolute; inset: 0; padding: 2px; border-radius: inherit; background: conic-gradient(from var(--angle), rgba(6,182,212,0.5), rgba(59,130,246,0.5), rgba(139,92,246,0.5), rgba(244,63,94,0.5), rgba(245,158,11,0.5), rgba(6,182,212,0.5)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; filter: blur(8px); opacity: 0.55; pointer-events: none; z-index: 0; }
+.btn-rainbow > .btn-inner { position: relative; z-index: 1; border-radius: inherit; }
+
+/* Icon animation */
+.arrow-animate { animation: arrow-nudge 1.4s ease-in-out infinite; }
+
+/* Utilities */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.mask-fade-x { -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent); }
+
+/* Theme overrides via data-theme attribute */
+[data-theme="light"] {
+  --background: #f8fafc; /* slate-50 */
+  --foreground: #0f172a; /* slate-900 */
+}
+
+[data-theme="dark"] {
+  --background: #05060a;
+  --foreground: #f8fafc;
+}
