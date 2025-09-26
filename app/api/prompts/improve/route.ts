@@ -28,8 +28,9 @@ Return just the improved prompt as plain text. Keep it concise. Remove sensitive
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
   if (process.env.NODE_ENV !== "production") {
-    console.log("[improve] hit route", { origin, ip: req.ip });
+    console.log("[improve] hit route", { origin, ip });
   }
 
   if (!corsAllowed(origin)) {
@@ -51,9 +52,10 @@ export async function POST(req: NextRequest) {
     const json = await req.json();
     input = ImprovePromptSchema.parse(json);
     if (process.env.NODE_ENV !== "production") console.log("[improve] input ok", { len: input.prompt.length });
-  } catch (e: any) {
-    if (process.env.NODE_ENV !== "production") console.error("[improve] invalid input", e?.message);
-    return NextResponse.json({ error: e?.message ?? "Invalid input" }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (process.env.NODE_ENV !== "production") console.error("[improve] invalid input", msg);
+    return NextResponse.json({ error: msg || "Invalid input" }, { status: 400 });
   }
 
   try {
@@ -75,10 +77,11 @@ export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV !== "production") console.log("[improve] openrouter ok", { length: text.length });
     // Return trimmed text only
     return NextResponse.json({ improved: text.trim() }, { status: 200 });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
     if (process.env.NODE_ENV !== "production") console.error("[improve] error", e);
     return NextResponse.json(
-      { error: e?.message ?? "Failed to improve prompt" },
+      { error: msg || "Failed to improve prompt" },
       { status: 500 }
     );
   }

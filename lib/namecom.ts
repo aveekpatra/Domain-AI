@@ -3,7 +3,10 @@ import "server-only";
 // Prefer CORE API if NAMECOM_TOKEN is set, fallback to legacy v4 if only username/token present.
 // Core API uses Basic Auth with username:token, same as v4
 const CORE_BASE = process.env.NAMECOM_CORE_API || "https://api.name.com";
-const V4_BASE = process.env.NAMECOM_API_BASE || "https://api.name.com/v4";
+// Ensure the v4 base always includes the /v4 path, even if the env var omits it
+const RAW_V4_BASE = process.env.NAMECOM_API_BASE || "https://api.name.com";
+const V4_BASE = RAW_V4_BASE.endsWith("/v4") ? RAW_V4_BASE : `${RAW_V4_BASE}/v4`;
+const V4_MAX_BATCH = 50;
 
 function basicAuthHeader() {
   const user = process.env.NAMECOM_USERNAME || "";
@@ -48,16 +51,8 @@ async function coreAvailability(domains: string[]) {
   return res.json() as Promise<{ results: { domainName: string; available?: boolean; premium?: boolean; purchasable?: boolean; purchasePrice?: number; purchaseType?: string; renewalPrice?: number }[] }>;
 }
 
-// Core API combines availability and pricing in one call, so we don't need a separate pricing endpoint
-// If we need detailed pricing, we can use the same checkAvailability endpoint
-async function corePricing(domains: string[]) {
-  // The checkAvailability endpoint already returns pricing info
-  // So we'll just call it again if needed (or we could cache the results)
-  return coreAvailability(domains);
-}
-
 async function v4Check(domains: string[]) {
-  const url = `${V4_BASE}/domains:check`;
+  const url = `${V4_BASE}/domains:checkAvailability`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -66,8 +61,27 @@ async function v4Check(domains: string[]) {
     },
     body: JSON.stringify({ domainNames: domains }),
   });
-  if (!res.ok) throw new Error(`name.com v4 check failed: ${res.status}`);
-  return res.json() as Promise<{ domains?: { domainName: string; available?: boolean; purchasePrice?: number; currency?: string }[] }>;
+  if (!res.ok) {
+    let bodyText = "";
+    try { bodyText = await res.text(); } catch {}
+    const hint = res.status === 403
+      ? "Hint: Ensure Basic Auth uses username (not email) + API token, Content-Type is application/json, Two-Factor Authentication is disabled, and the base URL includes /v4 (e.g., https://api.name.com/v4)."
+      : "";
+    throw new Error(`name.com v4 checkAvailability failed: ${res.status} - ${bodyText || "No response body"}${hint ? `\n${hint}` : ""}`);
+  }
+  return res.json() as Promise<{ results?: { domainName: string; purchasable?: boolean; purchasePrice?: number; renewalPrice?: number; currency?: string }[] }>;
+}
+
+async function v4CheckBatch(domains: string[]) {
+  const all: { domainName: string; purchasable?: boolean; purchasePrice?: number; renewalPrice?: number; currency?: string }[] = [];
+  for (let i = 0; i < domains.length; i += V4_MAX_BATCH) {
+    const chunk = domains.slice(i, i + V4_MAX_BATCH);
+    const resp = await v4Check(chunk);
+    if (resp.results && resp.results.length) {
+      all.push(...resp.results);
+    }
+  }
+  return { results: all };
 }
 
 export async function checkAvailabilityNamecom(domains: string[]): Promise<Record<string, NamecomCheckResult>> {
@@ -99,13 +113,14 @@ export async function checkAvailabilityNamecom(domains: string[]): Promise<Recor
   }
 
   // Legacy v4 fallback
-  const v4 = await v4Check(domains);
-  for (const d of v4.domains || []) {
+  const v4 = await v4CheckBatch(domains);
+  for (const d of v4.results || []) {
     map[d.domainName.toLowerCase()] = {
       domainName: d.domainName,
-      available: d.available,
+      available: typeof d.purchasable === "boolean" ? d.purchasable : undefined,
       currency: d.currency,
-      registerPrice: typeof d.purchasePrice === "number" ? d.purchasePrice / 100 : undefined,
+      registerPrice: typeof d.purchasePrice === "number" ? d.purchasePrice : undefined,
+      renewPrice: typeof d.renewalPrice === "number" ? d.renewalPrice : undefined,
     };
   }
   return map;

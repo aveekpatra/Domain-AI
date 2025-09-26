@@ -9,7 +9,7 @@ const MAX_HITS = 30; // 30 requests per minute per IP per route
 const buckets = new Map<string, { count: number; reset: number }>();
 
 export function rateLimit(req: NextRequest, keySuffix: string): { ok: boolean; retryAfter: number } {
-  const ip = req.ip || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
   const key = `${ip}:${keySuffix}`;
   const now = Date.now();
   const b = buckets.get(key);

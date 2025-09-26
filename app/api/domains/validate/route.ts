@@ -23,8 +23,9 @@ const corsAllowed = (origin?: string | null) => {
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
   if (process.env.NODE_ENV !== "production") {
-    console.log("[domains.validate] hit", { origin, ip: req.ip });
+    console.log("[domains.validate] hit", { origin, ip });
   }
   if (!corsAllowed(origin)) {
     if (process.env.NODE_ENV !== "production") console.warn("[domains.validate] blocked by CORS", { origin });
@@ -51,8 +52,9 @@ export async function POST(req: NextRequest) {
   try {
     const json = await req.json();
     input = ValidateDomainSchema.parse(json);
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Invalid input" }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg || "Invalid input" }, { status: 400 });
   }
 
   try {
@@ -67,9 +69,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ domain, available: row.available, price: priceStr, registrar: "Name.com" });
-  } catch (e: any) {
-    if (process.env.NODE_ENV !== "production") console.error("[domains.validate] error", e);
-    const msg = String(e?.message || "");
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (process.env.NODE_ENV !== "production") console.error("[domains.validate] error", msg);
     if (msg.includes("v4 check failed: 403") || msg.includes("CORE availability failed: 401") || msg.includes("CORE pricing failed: 401") || msg.includes("CORE availability failed: 403")) {
       const usingCore = process.env.NAMECOM_USE_CORE === "true";
       return NextResponse.json({
@@ -80,6 +82,6 @@ export async function POST(req: NextRequest) {
         code: "namecom_auth_error"
       }, { status: 502 });
     }
-    return NextResponse.json({ error: e?.message ?? "Validation failed" }, { status: 500 });
+    return NextResponse.json({ error: msg || "Validation failed" }, { status: 500 });
   }
 }

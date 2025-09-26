@@ -1,6 +1,5 @@
 import React from "react";
 import DomainResultItem, { DomainResult } from "./DomainResultItem";
-import Container from "@/components/ui/Container";
 
 const EmptyState: React.FC = () => (
   <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">

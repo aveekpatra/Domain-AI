@@ -10,10 +10,6 @@ const Hero: React.FC = () => {
   const [query, setQuery] = React.useState("");
   const router = useRouter();
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
   return (
     <section className="relative overflow-hidden">
       <Container className="pt-12 pb-16 sm:pt-16 sm:pb-24">

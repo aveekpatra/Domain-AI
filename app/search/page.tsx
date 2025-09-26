@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import NavbarLight from "@/components/NavbarLight";
 import Footer from "@/components/Footer";
 import Container from "@/components/ui/Container";
@@ -10,15 +10,7 @@ import PromptBar from "@/components/prompt/PromptBar";
 import Skeleton from "@/components/ui/Skeleton";
 import { useSearchParams } from "next/navigation";
 
-const mock: DomainResult[] = [
-  { domain: "ledgerleaf", tld: ".com", available: true, price: "$12.99", registrar: "Namecheap", score: 86, length: 10 },
-  { domain: "bookkept", tld: ".ai", available: true, price: "$55.00", registrar: "Domain.com", score: 79, length: 8 },
-  { domain: "fundfolio", tld: ".io", available: false, price: "$34.00", registrar: "Porkbun", score: 73, length: 9 },
-  { domain: "accuflow", tld: ".co", available: true, price: "$22.50", registrar: "Cloudflare", score: 81, length: 8 },
-  { domain: "tallies", tld: ".app", available: true, price: "$14.00", registrar: "Google", score: 68, length: 7 },
-];
-
-export default function SearchPage() {
+function SearchPageContent() {
   const [query, setQuery] = React.useState("");
   const [items, setItems] = React.useState<DomainResult[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -49,8 +41,8 @@ export default function SearchPage() {
         return {
           domain: s.domain,
           tld,
-          available: typeof s.available === "boolean" ? s.available : undefined,
-          price: s.price,
+          available: s.available === true, // enforce boolean
+          price: s.price ?? "—", // ensure string
           registrar: s.registrar ?? "Name.com",
           score: typeof s.score === "number" ? s.score : 75,
           length: s.domain.length,
@@ -79,10 +71,6 @@ export default function SearchPage() {
       console.table(items.map(i => ({ domain: i.domain + i.tld, available: i.available, price: i.price })));
     }
   }, [items]);
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -129,5 +117,26 @@ export default function SearchPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <NavbarLight />
+        <main>
+          <Container className="pt-8 pb-6">
+            <div className="w-full">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Search domains</h1>
+              <p className="mt-1 text-slate-600">Loading...</p>
+            </div>
+          </Container>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
