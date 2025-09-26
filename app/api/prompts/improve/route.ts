@@ -27,12 +27,19 @@ Return just the improved prompt as plain text. Keep it concise. Remove sensitive
 }
 
 export async function POST(req: NextRequest) {
-  if (!corsAllowed(req.headers.get("origin"))) {
+  const origin = req.headers.get("origin");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[improve] hit route", { origin, ip: req.ip });
+  }
+
+  if (!corsAllowed(origin)) {
+    if (process.env.NODE_ENV !== "production") console.warn("[improve] blocked by CORS", { origin });
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const limited = rateLimit(req, "prompt-improve");
   if (!limited.ok) {
+    if (process.env.NODE_ENV !== "production") console.warn("[improve] rate limited", { retryAfter: limited.retryAfter });
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429,
       headers: { "Retry-After": String(limited.retryAfter) },
@@ -43,11 +50,14 @@ export async function POST(req: NextRequest) {
   try {
     const json = await req.json();
     input = ImprovePromptSchema.parse(json);
+    if (process.env.NODE_ENV !== "production") console.log("[improve] input ok", { len: input.prompt.length });
   } catch (e: any) {
+    if (process.env.NODE_ENV !== "production") console.error("[improve] invalid input", e?.message);
     return NextResponse.json({ error: e?.message ?? "Invalid input" }, { status: 400 });
   }
 
   try {
+    if (process.env.NODE_ENV !== "production") console.log("[improve] calling openrouter", { model: process.env.OPENROUTER_MODEL || "openrouter/gpt-5-nano" });
     const { text } = await openRouterChat({
       messages: [
         { role: "system", content: systemPrompt() },
@@ -57,14 +67,16 @@ export async function POST(req: NextRequest) {
         apiKey: process.env.OPENROUTER_API_KEY || "",
         siteUrl: process.env.OPENROUTER_SITE_URL,
         appTitle: process.env.OPENROUTER_APP_TITLE || "DomainMonster",
-        model: process.env.OPENROUTER_MODEL || "openrouter/gpt-5-nano",
+        model: process.env.OPENROUTER_MODEL || undefined,
       },
       responseFormatJson: false,
     });
 
+    if (process.env.NODE_ENV !== "production") console.log("[improve] openrouter ok", { length: text.length });
     // Return trimmed text only
     return NextResponse.json({ improved: text.trim() }, { status: 200 });
   } catch (e: any) {
+    if (process.env.NODE_ENV !== "production") console.error("[improve] error", e);
     return NextResponse.json(
       { error: e?.message ?? "Failed to improve prompt" },
       { status: 500 }

@@ -20,12 +20,16 @@ export async function openRouterChat({
   if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
   const body: Record<string, any> = {
-    model: model || process.env.OPENROUTER_MODEL || "openrouter/gpt-5-nano",
+    model: model || process.env.OPENROUTER_MODEL || "openrouter/auto",
     messages,
   };
   if (responseFormatJson) {
     // Best-effort JSON mode if supported
     body.response_format = { type: "json_object" };
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[openrouter] request", { model: body.model, messages: messages.length, json: !!body.response_format });
   }
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -39,8 +43,13 @@ export async function openRouterChat({
     body: JSON.stringify(body),
   });
 
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[openrouter] response status", res.status);
+  }
+
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
+    if (process.env.NODE_ENV !== "production") console.error("[openrouter] error body", errText);
     throw new Error(`OpenRouter error: ${res.status} ${res.statusText} ${errText}`);
   }
 

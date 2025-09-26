@@ -35,8 +35,17 @@ export const DomainSuggestionsResponse = z.object({
       tld: z.string(),
       reason: z.string().optional(),
       score: z.number().min(0).max(100).optional(),
+      available: z.boolean().optional(),
+      price: z.string().optional(),
+      registrar: z.string().optional(),
     })
   ),
 });
 
 export type DomainSuggestions = z.infer<typeof DomainSuggestionsResponse>;
+
+export const ValidateDomainSchema = z.object({
+  domain: z.string().regex(/^[a-z0-9-]+\.[a-z]{2,}$/i, "Invalid domain"),
+});
+
+export type ValidateDomainInput = z.infer<typeof ValidateDomainSchema>;
