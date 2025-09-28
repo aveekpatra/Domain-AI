@@ -51,6 +51,14 @@ async function coreAvailability(domains: string[]) {
   return res.json() as Promise<{ results: { domainName: string; available?: boolean; premium?: boolean; purchasable?: boolean; purchasePrice?: number; purchaseType?: string; renewalPrice?: number }[] }>;
 }
 
+// Core API combines availability and pricing in one call, so we don't need a separate pricing endpoint
+// If we need detailed pricing, we can use the same checkAvailability endpoint
+async function corePricing(domains: string[]) {
+  // The checkAvailability endpoint already returns pricing info
+  // So we'll just call it again if needed (or we could cache the results)
+  return coreAvailability(domains);
+}
+
 async function v4Check(domains: string[]) {
   const url = `${V4_BASE}/domains:checkAvailability`;
   const res = await fetch(url, {

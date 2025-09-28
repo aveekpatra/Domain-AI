@@ -22,17 +22,61 @@ const corsAllowed = (origin?: string | null) => {
   }
 };
 
-function buildSystemPrompt(tlds: string[], count: number) {
-  return `You are DomainMonster, an assistant that generates brandable domain name ideas.
-Rules:
-- Output strictly valid JSON matching this TypeScript type: { "suggestions": {"domain": string, "tld": string, "reason"?: string, "score"?: number }[] }.
-- Provide exactly ${count} suggestions.
-- Use only these TLDs: ${tlds.join(", ")}
-- The "domain" field should contain ONLY the domain name WITHOUT the TLD extension (e.g., "ChicEthos", not "ChicEthos.com")
-- The "tld" field should contain the TLD extension (e.g., ".com", ".ai", ".io")
-- Prefer short, pronounceable, memorable names; avoid hyphens and numbers.
-- Avoid trademarks or real company names.
-- Do not include any additional text or code fences.`;
+function buildSystemPrompt(tlds?: string[], count: number = 20): string {
+  const tldGuidance = tlds && tlds.length > 0 
+    ? `Prioritize these TLDs: ${tlds.join(", ")}. You may also suggest other relevant TLDs if they better fit the business context.`
+    : `Choose the most appropriate TLDs for each domain based on the business context. Consider:
+- .com for general businesses and established brands
+- .ai for AI/tech companies
+- .io for tech startups and SaaS
+- .co for modern businesses and startups  
+- .app for mobile apps and applications
+- .dev for developer tools and tech products
+- .org for organizations and nonprofits
+- .net for network/internet services
+- .tech for technology companies
+- .store for e-commerce businesses
+- .design for creative agencies
+- .agency for service providers
+- Other relevant TLDs that match the business type`;
+
+  return `You are a creative domain name generator specializing in brandable, memorable, and meaningful domain names.
+
+Generate domain name ideas that are:
+- Creative and brandable (like "Spotify", "Airbnb", "Shopify")
+- Memorable and easy to pronounce
+- Meaningful and relevant to the business context
+- Professional yet distinctive
+- Suitable for modern businesses and startups
+- Avoid generic or overly descriptive names
+- Prefer invented words, portmanteaus, or creative combinations
+- Focus on names that could become strong brands
+
+${tldGuidance}
+
+CRITICAL FORMAT REQUIREMENTS:
+- The "domain" field must contain ONLY the domain name WITHOUT any TLD extension
+- The "tld" field must contain the TLD extension (e.g., ".com", ".co", ".io")
+- Example: For "brandify.com" → domain: "brandify", tld: ".com"
+- Choose TLDs that make contextual sense for each specific domain name and business type
+
+Return exactly ${count} domain suggestions in this JSON format:
+{
+  "suggestions": [
+    {
+      "domain": "brandname",
+      "tld": ".com",
+      "score": 85,
+      "reason": "Brief explanation of why this TLD fits this business"
+    }
+  ]
+}
+
+Each suggestion should have:
+- domain: string (domain name only, no TLD)
+- tld: string (contextually appropriate TLD extension including the dot)
+- score: number (brandability score 70-95 for creative names)
+- reason: string (brief explanation of TLD choice and domain relevance)`;
 }
 
 const SafeJSON = {

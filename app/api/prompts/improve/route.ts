@@ -52,10 +52,9 @@ export async function POST(req: NextRequest) {
     const json = await req.json();
     input = ImprovePromptSchema.parse(json);
     if (process.env.NODE_ENV !== "production") console.log("[improve] input ok", { len: input.prompt.length });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (process.env.NODE_ENV !== "production") console.error("[improve] invalid input", msg);
-    return NextResponse.json({ error: msg || "Invalid input" }, { status: 400 });
+  } catch (e: any) {
+    if (process.env.NODE_ENV !== "production") console.error("[improve] invalid input", e?.message);
+    return NextResponse.json({ error: e?.message ?? "Invalid input" }, { status: 400 });
   }
 
   try {
@@ -77,11 +76,10 @@ export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV !== "production") console.log("[improve] openrouter ok", { length: text.length });
     // Return trimmed text only
     return NextResponse.json({ improved: text.trim() }, { status: 200 });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
+  } catch (e: any) {
     if (process.env.NODE_ENV !== "production") console.error("[improve] error", e);
     return NextResponse.json(
-      { error: msg || "Failed to improve prompt" },
+      { error: e?.message ?? "Failed to improve prompt" },
       { status: 500 }
     );
   }

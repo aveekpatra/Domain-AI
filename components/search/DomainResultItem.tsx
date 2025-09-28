@@ -1,6 +1,6 @@
 import React from "react";
 import Card from "@/components/ui/Card";
-import { CheckCircleIcon, XCircleIcon, TagIcon, ShieldCheckIcon, GlobeAltIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XCircleIcon, TagIcon, ShieldCheckIcon, GlobeAltIcon, ArrowPathIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 
 export type DomainResult = {
   domain: string;
@@ -41,6 +41,12 @@ const DomainResultItem: React.FC<{ item: DomainResult }>=({ item })=>{
   const tone = state.available === true ? "success" : state.available === false ? "danger" : "neutral" as const;
   const cardBorder = tone === "success" ? "border-emerald-200" : tone === "danger" ? "border-rose-200" : "border-slate-200";
   const availLabel = state.available === true ? "Available" : state.available === false ? "Taken" : "Unknown";
+
+  const handleBuyNow = () => {
+    const fullDomain = `${state.domain}${state.tld?.startsWith('.') ? state.tld : `.${state.tld}`}`;
+    const namecomUrl = `https://www.name.com/domain/search/${encodeURIComponent(fullDomain)}`;
+    window.open(namecomUrl, '_blank');
+  };
 
   const doValidate = async () => {
     if (validating) return;
@@ -112,6 +118,17 @@ const DomainResultItem: React.FC<{ item: DomainResult }>=({ item })=>{
                 "Validate"
               )}
             </button>
+            {state.available === true && (
+              <button 
+                onClick={handleBuyNow} 
+                className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <ShoppingCartIcon className="h-4 w-4" />
+                  Buy Now
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>
