@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ImprovePromptSchema } from "@/lib/schemas";
 import { openRouterChat } from "@/lib/openrouter";
 import { rateLimit } from "@/lib/rateLimit";
+import { checkAIRateLimit, formatRateLimitMessage } from "@/lib/aiRateLimit";
 import { 
   logSecurityViolation, 
   checkPromptSecurity 
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Check basic rate limiting first
   const limited = rateLimit(req, "prompt-improve");
   if (!limited.ok) {
     if (process.env.NODE_ENV !== "production") console.warn("[improve] rate limited", { retryAfter: limited.retryAfter });
@@ -66,6 +68,44 @@ export async function POST(req: NextRequest) {
       status: 429,
       headers: { "Retry-After": String(limited.retryAfter) },
     });
+  }
+
+  // Check AI-specific rate limiting
+  const aiLimited = checkAIRateLimit(req, "prompt-improve");
+  if (!aiLimited.allowed) {
+    const message = formatRateLimitMessage(aiLimited);
+    
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[improve] AI rate limit hit", {
+        ip: ip?.substring(0, 10) + "...",
+        window: aiLimited.limit.window,
+        violations: aiLimited.violation?.count,
+        retryAfter: aiLimited.retryAfter
+      });
+    }
+    
+    return NextResponse.json(
+      { 
+        error: "AI rate limit exceeded",
+        message,
+        retryAfter: aiLimited.retryAfter,
+        limit: aiLimited.limit,
+        remaining: aiLimited.remaining
+      },
+      {
+        status: 429,
+        headers: { 
+          "Retry-After": String(aiLimited.retryAfter),
+          "X-RateLimit-Limit": String(aiLimited.limit.max),
+          "X-RateLimit-Remaining": String(Math.min(
+            aiLimited.remaining.minute,
+            aiLimited.remaining.hour,
+            aiLimited.remaining.day
+          )),
+          "X-RateLimit-Reset": String(Math.ceil(aiLimited.resetTime / 1000))
+        }
+      }
+    );
   }
 
   let input: z.infer<typeof ImprovePromptSchema>;

@@ -8,6 +8,23 @@ import DomainResults from "@/components/search/DomainResults";
 import { DomainResult } from "@/components/search/DomainResultItem";
 import PromptBar from "@/components/prompt/PromptBar";
 import Skeleton from "@/components/ui/Skeleton";
+import RateLimitMessage, { isRateLimitError } from "@/components/RateLimitMessage";
+
+interface RateLimitError {
+  error: string;
+  message: string;
+  retryAfter: number;
+  limit: {
+    current: number;
+    max: number;
+    window: string;
+  };
+  remaining: {
+    minute: number;
+    hour: number;
+    day: number;
+  };
+}
 import { useSearchParams } from "next/navigation";
 
 // Component that uses useSearchParams must be wrapped in Suspense
@@ -15,6 +32,8 @@ function SearchContent() {
   const [query, setQuery] = React.useState("");
   const [items, setItems] = React.useState<DomainResult[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [rateLimitError, setRateLimitError] = React.useState<RateLimitError | null>(null);
   const params = useSearchParams();
 
   React.useEffect(() => {
@@ -26,7 +45,12 @@ function SearchContent() {
   const runSearch = React.useCallback(async (q: string) => {
     const prompt = q.trim();
     if (!prompt) return;
+    
+    // Clear previous errors
+    setError(null);
+    setRateLimitError(null);
     setLoading(true);
+    
     try {
       console.log("[client] runSearch", { prompt });
       const res = await fetch("/api/domains/generate", {
@@ -42,8 +66,23 @@ function SearchContent() {
           count: 8,
         }),
       });
+      
       console.log("[client] generate status", res.status);
-      if (!res.ok) throw new Error(await res.text());
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        
+        // Check if it's a rate limit error
+        if (res.status === 429 && errorData && isRateLimitError(errorData)) {
+          setRateLimitError(errorData);
+          return;
+        }
+        
+        // Handle other errors
+        const errorText = errorData?.error || errorData?.message || `HTTP ${res.status}`;
+        throw new Error(errorText);
+      }
+      
       const data = (await res.json()) as {
         suggestions: {
           domain: string;
@@ -54,11 +93,13 @@ function SearchContent() {
           registrar?: string;
         }[];
       };
+      
       console.log(
         "[client] suggestions",
         data.suggestions?.length,
         data.suggestions,
       );
+      
       const mapped: DomainResult[] = data.suggestions.map((s) => {
         const tld = s.tld?.startsWith(".") ? s.tld : `.${s.tld}`;
         return {
@@ -71,9 +112,11 @@ function SearchContent() {
           length: s.domain.length,
         };
       });
+      
       setItems(mapped);
     } catch (e) {
       console.error("[client] generate failed", e);
+      setError(e instanceof Error ? e.message : "Failed to generate domains");
     } finally {
       setLoading(false);
     }
@@ -157,6 +200,18 @@ function SearchContent() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : rateLimitError ? (
+              <RateLimitMessage 
+                error={rateLimitError}
+                onRetry={() => runSearch(query)}
+                className="mb-6"
+              />
+            ) : error ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center [html[data-theme='dark']_&]:border-red-700 [html[data-theme='dark']_&]:bg-red-900/20">
+                <p className="text-red-700 [html[data-theme='dark']_&]:text-red-300">
+                  {error}
+                </p>
               </div>
             ) : (
               <DomainResults items={items} />

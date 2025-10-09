@@ -4,6 +4,7 @@ import { z } from "zod";
 import { GenerateDomainsSchema, DomainSuggestionsResponse } from "@/lib/schemas";
 import { openRouterChat } from "@/lib/openrouter";
 import { rateLimit } from "@/lib/rateLimit";
+import { checkAIRateLimit, formatRateLimitMessage } from "@/lib/aiRateLimit";
 import { checkAvailabilityNamecom } from "@/lib/namecom";
 import { 
   logSecurityViolation, 
@@ -120,12 +121,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Check basic rate limiting first (keep existing for non-AI requests)
   const limited = rateLimit(req, "domains-generate");
   if (!limited.ok) {
     return NextResponse.json({ error: "Too many requests" }, {
       status: 429,
       headers: { "Retry-After": String(limited.retryAfter) },
     });
+  }
+
+  // Check AI-specific rate limiting with enhanced controls
+  const aiLimited = checkAIRateLimit(req, "domains-generate");
+  if (!aiLimited.allowed) {
+    const message = formatRateLimitMessage(aiLimited);
+    
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[domains.generate] AI rate limit hit", {
+        ip: ip?.substring(0, 10) + "...",
+        window: aiLimited.limit.window,
+        current: aiLimited.limit.current,
+        max: aiLimited.limit.max,
+        violations: aiLimited.violation?.count,
+        retryAfter: aiLimited.retryAfter
+      });
+    }
+    
+    return NextResponse.json(
+      { 
+        error: "AI rate limit exceeded",
+        message,
+        retryAfter: aiLimited.retryAfter,
+        limit: aiLimited.limit,
+        remaining: aiLimited.remaining
+      }, 
+      {
+        status: 429,
+        headers: { 
+          "Retry-After": String(aiLimited.retryAfter),
+          "X-RateLimit-Limit": String(aiLimited.limit.max),
+          "X-RateLimit-Remaining": String(Math.min(
+            aiLimited.remaining.minute,
+            aiLimited.remaining.hour,
+            aiLimited.remaining.day
+          )),
+          "X-RateLimit-Reset": String(Math.ceil(aiLimited.resetTime / 1000))
+        }
+      }
+    );
   }
 
   let input: z.infer<typeof GenerateDomainsSchema>;
