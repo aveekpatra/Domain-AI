@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-slate-50 text-slate-900">
+    <div className="relative min-h-screen bg-page-bg text-page-text">
       <NavbarLight />
       <BackgroundTop />
       <main className="relative z-10">

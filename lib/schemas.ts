@@ -1,11 +1,18 @@
 import "server-only";
 import { z } from "zod";
+import { validateDomainPrompt } from "./promptSecurity";
 
 export const GenerateDomainsSchema = z.object({
   prompt: z
     .string()
     .min(3, "Prompt is too short")
-    .max(800, "Prompt is too long"),
+    .max(800, "Prompt is too long")
+    .refine((prompt) => {
+      const validation = validateDomainPrompt(prompt);
+      return validation.isValid;
+    }, {
+      message: "Prompt contains potentially harmful content or is not domain-related"
+    }),
   tlds: z.array(z.string().regex(/^\.[a-z]{2,10}$/i)).default([".com", ".ai", ".io", ".co", ".app", ".dev"]),
   count: z.number().int().min(3).max(20).default(8),
 });
@@ -16,7 +23,13 @@ export const ImprovePromptSchema = z.object({
   prompt: z
     .string()
     .min(3, "Prompt is too short")
-    .max(800, "Prompt is too long"),
+    .max(800, "Prompt is too long")
+    .refine((prompt) => {
+      const validation = validateDomainPrompt(prompt);
+      return validation.isValid;
+    }, {
+      message: "Prompt contains potentially harmful content or is not domain-related"
+    }),
 });
 
 export type ImprovePromptInput = z.infer<typeof ImprovePromptSchema>;

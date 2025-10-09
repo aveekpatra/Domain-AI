@@ -19,7 +19,11 @@ export async function openRouterChat({
   const { apiKey, siteUrl, appTitle, model } = config;
   if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
-  const body: Record<string, any> = {
+  const body: {
+    model: string;
+    messages: { role: "system" | "user" | "assistant"; content: string }[];
+    response_format?: { type: "json_object" };
+  } = {
     model: model || process.env.OPENROUTER_MODEL || "openrouter/auto",
     messages,
   };
@@ -53,7 +57,13 @@ export async function openRouterChat({
     throw new Error(`OpenRouter error: ${res.status} ${res.statusText} ${errText}`);
   }
 
-  const data = (await res.json()) as any;
+  const data = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+      };
+    }>;
+  };
   const text: string = data?.choices?.[0]?.message?.content ?? "";
   if (!text) throw new Error("OpenRouter returned empty response");
 

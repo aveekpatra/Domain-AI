@@ -32,15 +32,19 @@ const items = [
 const FeatureTiles: React.FC = () => {
   return (
     <section id="features" className="relative py-12 sm:py-16">
-      <Container>
+      <Container className="px-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((f) => (
             <Card key={f.title} variant="light" className="p-5">
               <div className="flex items-start gap-3">
-                <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)]" />
+                <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)] [html[data-theme='dark']_&]:shadow-[0_0_20px_rgba(16,185,129,0.4)]" />
                 <div>
-                  <h3 className="text-slate-900 font-semibold">{f.title}</h3>
-                  <p className="text-slate-600 text-sm mt-1">{f.desc}</p>
+                  <h3 className="text-slate-900 font-semibold [html[data-theme='dark']_&]:text-slate-100">
+                    {f.title}
+                  </h3>
+                  <p className="text-slate-600 text-sm mt-1 [html[data-theme='dark']_&]:text-slate-400">
+                    {f.desc}
+                  </p>
                 </div>
               </div>
             </Card>

@@ -2,7 +2,8 @@
 
 import React from "react";
 
-interface PromptTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
+interface PromptTextareaProps
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> {
   value: string;
   onChange: (v: string) => void;
   leftIcon?: React.ReactNode;
@@ -45,6 +46,9 @@ const PromptTextarea: React.FC<PromptTextareaProps> = ({
     leftIcon ? "pl-11" : "",
     multiline ? "min-h-[3.25rem]" : "",
     "resize-none leading-6",
+    "[html[data-theme='dark']_&]:bg-slate-800 [html[data-theme='dark']_&]:text-slate-100 [html[data-theme='dark']_&]:placeholder:text-slate-400",
+    "[html[data-theme='dark']_&]:border-slate-600",
+    "[html[data-theme='dark']_&]:focus:border-slate-500",
     className,
   ]
     .filter(Boolean)
@@ -53,7 +57,7 @@ const PromptTextarea: React.FC<PromptTextareaProps> = ({
   return (
     <div className="relative">
       {leftIcon && (
-        <span className="pointer-events-none absolute left-3 top-3 text-slate-500">
+        <span className="pointer-events-none absolute left-3 top-3 text-slate-500 [html[data-theme='dark']_&]:text-slate-400">
           {leftIcon}
         </span>
       )}
