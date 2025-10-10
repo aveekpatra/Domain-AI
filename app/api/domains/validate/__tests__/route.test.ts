@@ -1,53 +1,34 @@
 import { POST } from '../route'
+import { NextRequest } from 'next/server'
 
-// Create a mock NextRequest without cookies issue
+// Create a mock NextRequest that properly extends the real NextRequest
 function createMockNextRequest(url: string, options: {
   method?: string
   headers?: Record<string, string>
   body?: string
-}) {
-  const request = {
-    url,
-    method: options.method || 'GET',
-    headers: {
-      get: (name: string) => (options.headers || {})[name.toLowerCase()] || null,
-      has: (name: string) => name.toLowerCase() in (options.headers || {}),
-      set: jest.fn(),
-      delete: jest.fn(),
-      forEach: jest.fn(),
-      entries: jest.fn(),
-      keys: jest.fn(),
-      values: jest.fn(),
-      append: jest.fn()
-    },
-    body: options.body,
-    json: async () => {
-      if (options.body) {
-        try {
-          return JSON.parse(options.body)
-        } catch {
-          throw new Error('Invalid JSON')
-        }
-      }
-      return {}
-    },
-    text: async () => options.body || '',
-    cookies: {
-      get: jest.fn(),
-      getAll: jest.fn(),
-      has: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn(),
-      clear: jest.fn(),
-      toString: jest.fn()
-    },
-    nextUrl: {
-      pathname: new URL(url).pathname,
-      search: new URL(url).search,
-      searchParams: new URL(url).searchParams
-    }
+}): NextRequest {
+  const mockRequest = new Request(url, {
+    method: options.method || 'POST',
+    headers: new Headers(options.headers || {}),
+    body: options.body
+  })
+  
+  // Add NextRequest specific properties
+  const nextRequest = mockRequest as unknown as NextRequest
+  nextRequest.nextUrl = {
+    pathname: new URL(url).pathname,
+    search: new URL(url).search,
+    searchParams: new URL(url).searchParams,
+    href: url,
+    origin: new URL(url).origin,
+    protocol: new URL(url).protocol,
+    host: new URL(url).host,
+    hostname: new URL(url).hostname,
+    port: new URL(url).port,
+    hash: new URL(url).hash
   }
-  return request as unknown
+  
+  return nextRequest
 }
 
 // Mock the external modules

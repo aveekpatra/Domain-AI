@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Renko — AI Domain Name Finder",
-  description: "Find the perfect domain with AI. Explore TLDs, compare registrar pricing, and register via affiliate links.",
+  description:
+    "Find the perfect domain with AI. Explore TLDs, compare registrar pricing, and register via affiliate links.",
   icons: {
     icon: "/convex.svg",
   },
@@ -57,6 +59,7 @@ export default function RootLayout({
         <ThemeProvider defaultTheme="light" storageKey="renko-theme">
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

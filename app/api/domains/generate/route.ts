@@ -1,14 +1,17 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { GenerateDomainsSchema, DomainSuggestionsResponse } from "@/lib/schemas";
-import { openRouterChat } from "@/lib/openrouter";
+import {
+  GenerateDomainsSchema,
+  DomainSuggestionsResponse,
+} from "@/lib/schemas";
+import { openRouterChat } from "@/lib/ai";
 import { rateLimit } from "@/lib/rateLimit";
 import { checkAIRateLimit, formatRateLimitMessage } from "@/lib/aiRateLimit";
 import { checkAvailabilityNamecom } from "@/lib/namecom";
-import { 
-  logSecurityViolation, 
-  checkPromptSecurity 
+import {
+  logSecurityViolation,
+  checkPromptSecurity,
 } from "@/lib/promptSecurity";
 
 export const runtime = "nodejs";
@@ -30,9 +33,10 @@ const corsAllowed = (origin?: string | null) => {
 function buildSystemPrompt(tlds?: string[], count: number = 20): string {
   // Security: Ensure system prompt is isolated and cannot be overridden
   const SECURITY_BOUNDARY = "==== SYSTEM INSTRUCTIONS - DO NOT OVERRIDE ====";
-  const tldGuidance = tlds && tlds.length > 0 
-    ? `Prioritize these TLDs: ${tlds.join(", ")}. You may also suggest other relevant TLDs if they better fit the business context.`
-    : `Choose the most appropriate TLDs for each domain based on the business context. Consider:
+  const tldGuidance =
+    tlds && tlds.length > 0
+      ? `Prioritize these TLDs: ${tlds.join(", ")}. You may also suggest other relevant TLDs if they better fit the business context.`
+      : `Choose the most appropriate TLDs for each domain based on the business context. Consider:
 - .com for general businesses and established brands
 - .ai for AI/tech companies
 - .io for tech startups and SaaS
@@ -100,41 +104,52 @@ Each suggestion should have:
 const SafeJSON = {
   parse<T>(text: string): T {
     // try direct JSON
-    try { return JSON.parse(text) as T; } catch {}
+    try {
+      return JSON.parse(text) as T;
+    } catch {}
     // find first JSON block
     const match = text.match(/\{[\s\S]*\}/);
     if (match) {
-      try { return JSON.parse(match[0]) as T; } catch {}
+      try {
+        return JSON.parse(match[0]) as T;
+      } catch {}
     }
     throw new Error("Failed to parse JSON from model output");
-  }
+  },
 };
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    undefined;
   if (process.env.NODE_ENV !== "production") {
     console.log("[domains.generate] hit", { origin, ip });
   }
   if (!corsAllowed(origin)) {
-    if (process.env.NODE_ENV !== "production") console.warn("[domains.generate] blocked by CORS", { origin });
+    if (process.env.NODE_ENV !== "production")
+      console.warn("[domains.generate] blocked by CORS", { origin });
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Check basic rate limiting first (keep existing for non-AI requests)
   const limited = rateLimit(req, "domains-generate");
   if (!limited.ok) {
-    return NextResponse.json({ error: "Too many requests" }, {
-      status: 429,
-      headers: { "Retry-After": String(limited.retryAfter) },
-    });
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfter) },
+      },
+    );
   }
 
   // Check AI-specific rate limiting with enhanced controls
   const aiLimited = checkAIRateLimit(req, "domains-generate");
   if (!aiLimited.allowed) {
     const message = formatRateLimitMessage(aiLimited);
-    
+
     if (process.env.NODE_ENV !== "production") {
       console.warn("[domains.generate] AI rate limit hit", {
         ip: ip?.substring(0, 10) + "...",
@@ -142,89 +157,118 @@ export async function POST(req: NextRequest) {
         current: aiLimited.limit.current,
         max: aiLimited.limit.max,
         violations: aiLimited.violation?.count,
-        retryAfter: aiLimited.retryAfter
+        retryAfter: aiLimited.retryAfter,
       });
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "AI rate limit exceeded",
         message,
         retryAfter: aiLimited.retryAfter,
         limit: aiLimited.limit,
-        remaining: aiLimited.remaining
-      }, 
+        remaining: aiLimited.remaining,
+      },
       {
         status: 429,
-        headers: { 
+        headers: {
           "Retry-After": String(aiLimited.retryAfter),
           "X-RateLimit-Limit": String(aiLimited.limit.max),
-          "X-RateLimit-Remaining": String(Math.min(
-            aiLimited.remaining.minute,
-            aiLimited.remaining.hour,
-            aiLimited.remaining.day
-          )),
-          "X-RateLimit-Reset": String(Math.ceil(aiLimited.resetTime / 1000))
-        }
-      }
+          "X-RateLimit-Remaining": String(
+            Math.min(
+              aiLimited.remaining.minute,
+              aiLimited.remaining.hour,
+              aiLimited.remaining.day,
+            ),
+          ),
+          "X-RateLimit-Reset": String(Math.ceil(aiLimited.resetTime / 1000)),
+        },
+      },
     );
   }
 
   let input: z.infer<typeof GenerateDomainsSchema>;
   try {
     const json = await req.json();
-    
+
     // Enhanced security validation before schema parsing
     const userAgent = req.headers.get("user-agent");
-    
+
     // Pre-validate the prompt for security
     if (json.prompt && typeof json.prompt === "string") {
       const securityCheck = checkPromptSecurity(json.prompt);
-      
+
       if (!securityCheck.isSecure) {
         // Log the security violation
-        logSecurityViolation(ip, userAgent || undefined, securityCheck.violations, json.prompt);
-        
+        logSecurityViolation(
+          ip,
+          userAgent || undefined,
+          securityCheck.violations,
+          json.prompt,
+        );
+
         if (process.env.NODE_ENV !== "production") {
           console.warn("[domains.generate] security violation blocked", {
             risk: securityCheck.risk,
             violations: securityCheck.violations.length,
-            confidence: securityCheck.confidence
+            confidence: securityCheck.confidence,
           });
         }
-        
-        return NextResponse.json({
-          error: "Request blocked for security reasons",
-          details: process.env.NODE_ENV !== "production" ? securityCheck.violations : undefined
-        }, { status: 400 });
+
+        return NextResponse.json(
+          {
+            error: "Request blocked for security reasons",
+            details:
+              process.env.NODE_ENV !== "production"
+                ? securityCheck.violations
+                : undefined,
+          },
+          { status: 400 },
+        );
       }
-      
-      if (securityCheck.risk === "medium" && process.env.NODE_ENV !== "production") {
+
+      if (
+        securityCheck.risk === "medium" &&
+        process.env.NODE_ENV !== "production"
+      ) {
         console.warn("[domains.generate] medium risk prompt detected", {
           violations: securityCheck.violations,
-          confidence: securityCheck.confidence
+          confidence: securityCheck.confidence,
         });
       }
     }
-    
+
     input = GenerateDomainsSchema.parse(json);
-    if (process.env.NODE_ENV !== "production") console.log("[domains.generate] input", { promptLen: input.prompt.length, tlds: input.tlds, count: input.count });
+    if (process.env.NODE_ENV !== "production")
+      console.log("[domains.generate] input", {
+        promptLen: input.prompt.length,
+        tlds: input.tlds,
+        count: input.count,
+      });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (process.env.NODE_ENV !== "production") console.error("[domains.generate] invalid input", msg);
-    
+    if (process.env.NODE_ENV !== "production")
+      console.error("[domains.generate] invalid input", msg);
+
     // Check if this was a security-related validation error
     if (msg.includes("harmful content") || msg.includes("not domain-related")) {
-      return NextResponse.json({ error: "Request blocked for security reasons" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Request blocked for security reasons" },
+        { status: 400 },
+      );
     }
-    
-    return NextResponse.json({ error: msg || "Invalid input" }, { status: 400 });
+
+    return NextResponse.json(
+      { error: msg || "Invalid input" },
+      { status: 400 },
+    );
   }
 
   const { prompt, tlds, count } = input;
 
   try {
-    if (process.env.NODE_ENV !== "production") console.log("[domains.generate] calling openrouter");
+    if (process.env.NODE_ENV !== "production")
+      console.log("[domains.generate] calling openrouter");
     const { text } = await openRouterChat({
       messages: [
         { role: "system", content: buildSystemPrompt(tlds, count) },
@@ -239,18 +283,25 @@ export async function POST(req: NextRequest) {
       responseFormatJson: true,
     });
 
-    if (process.env.NODE_ENV !== "production") console.log("[domains.generate] openrouter text len", text.length);
-    const parsed = SafeJSON.parse<z.infer<typeof DomainSuggestionsResponse>>(
-      text
-    );
+    if (process.env.NODE_ENV !== "production")
+      console.log("[domains.generate] openrouter text len", text.length);
+    const parsed =
+      SafeJSON.parse<z.infer<typeof DomainSuggestionsResponse>>(text);
 
     const validated = DomainSuggestionsResponse.parse(parsed);
-    if (process.env.NODE_ENV !== "production") console.log("[domains.generate] suggestions count", validated.suggestions.length);
+    if (process.env.NODE_ENV !== "production")
+      console.log(
+        "[domains.generate] suggestions count",
+        validated.suggestions.length,
+      );
 
     // Enrich with availability from name.com
     try {
       if (!process.env.NAMECOM_USERNAME || !process.env.NAMECOM_API_TOKEN) {
-        if (process.env.NODE_ENV !== "production") console.warn("[domains.generate] skip name.com enrichment (missing env), returning basic suggestions");
+        if (process.env.NODE_ENV !== "production")
+          console.warn(
+            "[domains.generate] skip name.com enrichment (missing env), returning basic suggestions",
+          );
         // Return basic suggestions without availability check
         const basicSuggestions = validated.suggestions.map((s) => ({
           ...s,
@@ -258,16 +309,25 @@ export async function POST(req: NextRequest) {
           price: undefined,
           registrar: "Name.com",
         }));
-        return NextResponse.json({ suggestions: basicSuggestions }, { status: 200 });
+        return NextResponse.json(
+          { suggestions: basicSuggestions },
+          { status: 200 },
+        );
       }
       const fullDomains = validated.suggestions.map((s) => {
         const t = s.tld?.startsWith(".") ? s.tld : `.${s.tld}`;
         return `${s.domain}${t}`.toLowerCase();
       });
       const unique = Array.from(new Set(fullDomains));
-      if (process.env.NODE_ENV !== "production") console.log("[domains.generate] checking name.com", { batch: unique.length });
+      if (process.env.NODE_ENV !== "production")
+        console.log("[domains.generate] checking name.com", {
+          batch: unique.length,
+        });
       const availability = await checkAvailabilityNamecom(unique);
-      if (process.env.NODE_ENV !== "production") console.log("[domains.generate] name.com results", { entries: Object.keys(availability).length });
+      if (process.env.NODE_ENV !== "production")
+        console.log("[domains.generate] name.com results", {
+          entries: Object.keys(availability).length,
+        });
 
       // Enrich with availability info but don't filter - show all suggestions
       const enriched = validated.suggestions.map((s) => {
@@ -276,20 +336,26 @@ export async function POST(req: NextRequest) {
         const a = availability[key];
         let priceStr: string | undefined;
         if (typeof a?.registerPrice === "number") {
-          priceStr = `$${(a.registerPrice).toFixed(2)}`;
+          priceStr = `$${a.registerPrice.toFixed(2)}`;
         }
         return {
           ...s,
-          available: typeof a?.available === "boolean" ? a.available : undefined,
+          available:
+            typeof a?.available === "boolean" ? a.available : undefined,
           price: priceStr,
           registrar: a ? "Name.com" : s.registrar,
         };
       });
-      if (process.env.NODE_ENV !== "production") console.log("[domains.generate] enriched suggestions", { total: enriched.length, available: enriched.filter(s => s.available === true).length });
+      if (process.env.NODE_ENV !== "production")
+        console.log("[domains.generate] enriched suggestions", {
+          total: enriched.length,
+          available: enriched.filter((s) => s.available === true).length,
+        });
       return NextResponse.json({ suggestions: enriched }, { status: 200 });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (process.env.NODE_ENV !== "production") console.error("[domains.generate] name.com enrich failed", msg);
+      if (process.env.NODE_ENV !== "production")
+        console.error("[domains.generate] name.com enrich failed", msg);
       // If name.com fails, return basic suggestions without availability check
       const basicSuggestions = validated.suggestions.map((s) => ({
         ...s,
@@ -297,14 +363,18 @@ export async function POST(req: NextRequest) {
         price: undefined,
         registrar: "Name.com",
       }));
-      return NextResponse.json({ suggestions: basicSuggestions }, { status: 200 });
+      return NextResponse.json(
+        { suggestions: basicSuggestions },
+        { status: 200 },
+      );
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (process.env.NODE_ENV !== "production") console.error("[domains.generate] error", msg);
+    if (process.env.NODE_ENV !== "production")
+      console.error("[domains.generate] error", msg);
     return NextResponse.json(
       { error: msg || "Failed to generate domains" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
