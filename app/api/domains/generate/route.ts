@@ -73,6 +73,7 @@ Generate domain name ideas that are:
 - Avoid generic or overly descriptive names
 - Prefer invented words, portmanteaus, or creative combinations
 - Focus on names that could become strong brands
+- Most important: Always prioritize the what the user is asking for. It's more important than the brandability score.
 
 ${tldGuidance}
 
@@ -97,7 +98,7 @@ Return exactly ${count} domain suggestions in this JSON format:
 Each suggestion should have:
 - domain: string (domain name only, no TLD)
 - tld: string (contextually appropriate TLD extension including the dot)
-- score: number (brandability score 70-95 for creative names)
+- score: number (brandability score 0-100 for creative names)
 - reason: string (brief explanation of TLD choice and domain relevance)`;
 }
 
