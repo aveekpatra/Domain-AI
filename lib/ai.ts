@@ -24,7 +24,7 @@ export async function openRouterChat({
   const openrouter = createOpenRouter({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",
-    defaultHeaders: {
+    headers: {
       ...(siteUrl ? { "HTTP-Referer": siteUrl } : {}),
       ...(appTitle ? { "X-Title": appTitle } : {}),
     },
@@ -57,14 +57,8 @@ export async function openRouterChat({
       console.log("[ai] response status", 200);
     }
 
-    // Extract text from result
-    let text: string;
-    if (responseFormatJson && typeof result.object === "object") {
-      text = JSON.stringify(result.object);
-    } else {
-      text = result.text;
-    }
-
+    // Extract text from result - the AI SDK returns text directly
+    const text = result.text;
     if (!text) throw new Error("AI returned empty response");
 
     return { text };
