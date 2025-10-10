@@ -63,7 +63,7 @@ function SearchContent() {
         body: JSON.stringify({
           prompt,
           tlds: [".com", ".ai", ".io", ".co", ".app", ".dev"],
-          count: 8,
+          count: 20,
         }),
       });
       

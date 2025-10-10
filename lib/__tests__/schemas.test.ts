@@ -23,7 +23,7 @@ describe('Schema Validations', () => {
         expect(result).toEqual({
           prompt: 'AI startup for healthcare',
           tlds: ['.com', '.ai', '.io', '.co', '.app', '.dev'], // default values
-          count: 8 // default value
+          count: 20 // default value
         })
       })
 
@@ -389,7 +389,7 @@ describe('Schema Validations', () => {
       const result = GenerateDomainsSchema.parse(input)
 
       expect(result.tlds).toEqual(['.com', '.ai', '.io', '.co', '.app', '.dev'])
-      expect(result.count).toBe(8)
+      expect(result.count).toBe(20)
     })
 
     it('should not override provided values with defaults', () => {

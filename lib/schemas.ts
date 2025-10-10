@@ -14,7 +14,7 @@ export const GenerateDomainsSchema = z.object({
       message: "Prompt contains potentially harmful content or is not domain-related"
     }),
   tlds: z.array(z.string().regex(/^\.[a-z]{2,10}$/i)).default([".com", ".ai", ".io", ".co", ".app", ".dev"]),
-  count: z.number().int().min(3).max(20).default(8),
+  count: z.number().int().min(3).max(20).default(20),
 });
 
 export type GenerateDomainsInput = z.infer<typeof GenerateDomainsSchema>;
