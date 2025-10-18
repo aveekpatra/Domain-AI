@@ -37,25 +37,33 @@ const ContactForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const formspreeId = process.env.NEXT_PUBLIC_FORMSPREE_ID;
-      if (!formspreeId) {
-        throw new Error("Formspree ID not configured");
-      }
+      // Prepare data for Formspree - email as field, everything else as JSON message
+      const payload = {
+        email: formData.email,
+        message: JSON.stringify({
+          name: formData.name,
+          subject: formData.subject,
+          message: formData.message,
+        }),
+      };
 
-      const response = await fetch(`https://formspree.io/f/${formspreeId}`, {
+      const response = await fetch("https://formspree.io/f/mwpryjzr", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
+
+      const result = await response.json();
 
       if (response.ok) {
         setSubmitted(true);
         setFormData({ name: "", email: "", subject: "", message: "" });
         setTimeout(() => setSubmitted(false), 3000);
       } else {
-        throw new Error("Failed to submit form");
+        throw new Error(result.error || "Failed to submit form");
       }
     } catch (error) {
       console.error("Form submission error:", error);
