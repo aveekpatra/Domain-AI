@@ -111,6 +111,7 @@ Each suggestion should have:
 - tld: string (contextually appropriate TLD extension including the dot)
 - score: number (brandability score 0-100, be realistic and critical)
 - reason: string (brief explanation of TLD choice and domain relevance)
+`;
 }
 
 const SafeJSON = {
