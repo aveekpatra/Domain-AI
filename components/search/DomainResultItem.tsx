@@ -6,9 +6,14 @@ import {
   TagIcon,
   ShieldCheckIcon,
   GlobeAltIcon,
-  ArrowPathIcon,
   ShoppingCartIcon,
+  HandThumbUpIcon,
+  HandThumbDownIcon,
 } from "@heroicons/react/24/outline";
+import {
+  HandThumbUpIcon as HandThumbUpIconSolid,
+  HandThumbDownIcon as HandThumbDownIconSolid,
+} from "@heroicons/react/24/solid";
 
 export type DomainResult = {
   domain: string;
@@ -55,9 +60,14 @@ const Meter: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-const DomainResultItem: React.FC<{ item: DomainResult }> = ({ item }) => {
-  const [state, setState] = React.useState(item);
-  const [validating, setValidating] = React.useState(false);
+interface DomainResultItemProps {
+  item: DomainResult;
+  onFeedback?: (feedback: 'like' | 'dislike', domain: DomainResult) => void;
+}
+
+const DomainResultItem: React.FC<DomainResultItemProps> = ({ item, onFeedback }) => {
+  const [state] = React.useState(item);
+  const [feedback, setFeedback] = React.useState<'like' | 'dislike' | null>(null);
   const tone =
     state.available === true
       ? "success"
@@ -83,37 +93,17 @@ const DomainResultItem: React.FC<{ item: DomainResult }> = ({ item }) => {
     window.open(namecomUrl, "_blank");
   };
 
-  const doValidate = async () => {
-    if (validating) return;
-    setValidating(true);
-    try {
-      const full =
-        `${state.domain}${state.tld?.startsWith(".") ? state.tld : `.${state.tld}`}`.toLowerCase();
-      console.log("[client] validate", full);
-      const res = await fetch("/api/domains/validate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        credentials: "same-origin",
-        body: JSON.stringify({ domain: full }),
-      });
-      console.log("[client] validate status", res.status);
-      const data = await res.json();
-      console.log("[client] validate data", data);
-      if (res.ok) {
-        setState((s) => ({
-          ...s,
-          available: data.available,
-          price: data.price ?? s.price,
-          registrar: data.registrar ?? s.registrar,
-        }));
-      }
-    } catch (e) {
-      console.error("[client] validate failed", e);
-    } finally {
-      setValidating(false);
+  const handleLike = () => {
+    setFeedback(feedback === 'like' ? null : 'like');
+    if (feedback !== 'like') {
+      onFeedback?.('like', state);
+    }
+  };
+
+  const handleDislike = () => {
+    setFeedback(feedback === 'dislike' ? null : 'dislike');
+    if (feedback !== 'dislike') {
+      onFeedback?.('dislike', state);
     }
   };
 
@@ -175,18 +165,38 @@ const DomainResultItem: React.FC<{ item: DomainResult }> = ({ item }) => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
-              onClick={doValidate}
-              disabled={validating}
-              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 disabled:opacity-60 whitespace-nowrap [html[data-theme='dark']_&]:border-slate-600 [html[data-theme='dark']_&]:bg-slate-800 [html[data-theme='dark']_&]:text-slate-100 [html[data-theme='dark']_&]:hover:bg-slate-700"
+              onClick={handleLike}
+              className={`rounded-full border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                feedback === 'like'
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 [html[data-theme="dark"]_&]:border-emerald-700 [html[data-theme="dark"]_&]:bg-emerald-900/30 [html[data-theme="dark"]_&]:text-emerald-300'
+                  : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50 [html[data-theme="dark"]_&]:border-slate-600 [html[data-theme="dark"]_&]:bg-slate-800 [html[data-theme="dark"]_&]:text-slate-100 [html[data-theme="dark"]_&]:hover:bg-slate-700'
+              }`}
             >
-              {validating ? (
-                <span className="inline-flex items-center justify-center gap-1">
-                  <ArrowPathIcon className="h-4 w-4 animate-spin shrink-0" />
-                  <span>Validating…</span>
-                </span>
-              ) : (
-                "Validate"
-              )}
+              <span className="inline-flex items-center justify-center gap-1">
+                {feedback === 'like' ? (
+                  <HandThumbUpIconSolid className="h-4 w-4 shrink-0" />
+                ) : (
+                  <HandThumbUpIcon className="h-4 w-4 shrink-0" />
+                )}
+                <span>Like</span>
+              </span>
+            </button>
+            <button
+              onClick={handleDislike}
+              className={`rounded-full border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                feedback === 'dislike'
+                  ? 'border-rose-300 bg-rose-50 text-rose-700 [html[data-theme="dark"]_&]:border-rose-700 [html[data-theme="dark"]_&]:bg-rose-900/30 [html[data-theme="dark"]_&]:text-rose-300'
+                  : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50 [html[data-theme="dark"]_&]:border-slate-600 [html[data-theme="dark"]_&]:bg-slate-800 [html[data-theme="dark"]_&]:text-slate-100 [html[data-theme="dark"]_&]:hover:bg-slate-700'
+              }`}
+            >
+              <span className="inline-flex items-center justify-center gap-1">
+                {feedback === 'dislike' ? (
+                  <HandThumbDownIconSolid className="h-4 w-4 shrink-0" />
+                ) : (
+                  <HandThumbDownIcon className="h-4 w-4 shrink-0" />
+                )}
+                <span>Dislike</span>
+              </span>
             </button>
             {state.available === true && (
               <button
