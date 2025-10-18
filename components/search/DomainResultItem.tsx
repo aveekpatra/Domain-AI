@@ -46,14 +46,27 @@ const Badge: React.FC<{
 
 const Meter: React.FC<{ value: number }> = ({ value }) => {
   const pct = Math.max(0, Math.min(100, value));
-  const hue = 100 - Math.round((pct / 100) * 100); // green->yellow->red
+  
+  // Determine color based on score ranges
+  let bgColor: string;
+  if (pct >= 75) {
+    // Green for excellent (75-100)
+    bgColor = `linear-gradient(90deg, hsl(142,70%,55%), hsl(130,70%,50%))`; // green
+  } else if (pct >= 50) {
+    // Yellow/amber for good (50-74)
+    bgColor = `linear-gradient(90deg, hsl(45,70%,55%), hsl(30,70%,50%))`; // amber
+  } else {
+    // Red for below average (0-49)
+    bgColor = `linear-gradient(90deg, hsl(0,70%,55%), hsl(350,70%,50%))`; // red
+  }
+  
   return (
     <div className="h-2 w-28 rounded-full bg-slate-200/70 overflow-hidden [html[data-theme='dark']_&]:bg-slate-700/70">
       <div
         className="h-full"
         style={{
           width: `${pct}%`,
-          background: `linear-gradient(90deg, hsl(${hue},70%,55%), hsl(${Math.max(hue - 20, 0)},70%,50%))`,
+          background: bgColor,
         }}
       />
     </div>
@@ -156,7 +169,13 @@ const DomainResultItem: React.FC<DomainResultItemProps> = ({ item, onFeedback })
             </p>
             <div className="flex items-center gap-2">
               <Meter value={state.score} />
-              <span className="text-sm font-medium text-slate-900 [html[data-theme='dark']_&]:text-slate-100">
+              <span className={`text-sm font-medium ${
+                state.score >= 75
+                  ? 'text-emerald-600 [html[data-theme="dark"]_&]:text-emerald-400'
+                  : state.score >= 50
+                  ? 'text-amber-600 [html[data-theme="dark"]_&]:text-amber-400'
+                  : 'text-rose-600 [html[data-theme="dark"]_&]:text-rose-400'
+              }`}>
                 {state.score}
               </span>
             </div>

@@ -73,7 +73,7 @@ Generate domain name ideas that are:
 - Avoid generic or overly descriptive names
 - Prefer invented words, portmanteaus, or creative combinations
 - Focus on names that could become strong brands
-- Most important: Always prioritize the what the user is asking for. It's more important than the brandability score.
+- Most important: Always prioritize what the user is asking for. It's more important than the brandability score.
 
 ${tldGuidance}
 
@@ -83,13 +83,24 @@ CRITICAL FORMAT REQUIREMENTS:
 - Example: For "brandify.com" → domain: "brandify", tld: ".com"
 - Choose TLDs that make contextual sense for each specific domain name and business type
 
+BRANDABILITY SCORING GUIDELINES (MUST BE REALISTIC):
+- 90-100: Exceptional domains with strong brand potential (rare, like Spotify or Airbnb level)
+- 75-89: Very good domains that are memorable and brandable
+- 60-74: Good domains with decent brand potential
+- 45-59: Average domains that could work but lack distinctiveness
+- 30-44: Below average domains with limited brand appeal
+- Below 30: Poor domains with generic or unappealing characteristics
+
+Most domains should score between 40-70. Only give 75+ scores to truly exceptional names. 
+Be critical and realistic - most domain names are not highly brandable.
+
 Return exactly ${count} domain suggestions in this JSON format:
 {
   "suggestions": [
     {
       "domain": "brandname",
       "tld": ".com",
-      "score": 85,
+      "score": 65,
       "reason": "Brief explanation of why this TLD fits this business"
     }
   ]
@@ -98,8 +109,8 @@ Return exactly ${count} domain suggestions in this JSON format:
 Each suggestion should have:
 - domain: string (domain name only, no TLD)
 - tld: string (contextually appropriate TLD extension including the dot)
-- score: number (brandability score 0-100 for creative names)
-- reason: string (brief explanation of TLD choice and domain relevance)`;
+- score: number (brandability score 0-100, be realistic and critical)
+- reason: string (brief explanation of TLD choice and domain relevance)
 }
 
 const SafeJSON = {
