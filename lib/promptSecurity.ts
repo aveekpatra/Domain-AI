@@ -285,7 +285,7 @@ function isDomainRelated(prompt: string): boolean {
     "delivery", "medical", "diagnosis", "dashboard", "customer", "freelancers"
   ];
   
-  const promptLower = prompt.toLowerCase();
+  const promptLower = prompt.toLowerCase().trim();
   const keywordCount = domainKeywords.filter(keyword => 
     promptLower.includes(keyword)
   ).length;
@@ -302,6 +302,12 @@ function isDomainRelated(prompt: string): boolean {
   
   if (nonDomainPatterns.some(pattern => pattern.test(prompt))) {
     return false;
+  }
+  
+  // Check if prompt looks like a simple domain name (e.g., "google.com", "github.io")
+  // This is a legitimate use case where user enters an existing domain to generate alternatives
+  if (/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i.test(promptLower)) {
+    return true;
   }
   
   // If prompt has at least 1 domain-related keyword or is asking for names/suggestions
