@@ -29,7 +29,7 @@ const ThemeToggle: React.FC = () => {
       onClick={toggleTheme}
       aria-label={`Current theme: ${getThemeLabel()}. Click to toggle.`}
       title={`Current theme: ${getThemeLabel()}`}
-      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 [html[data-theme='dark']_&]:border-slate-700 [html[data-theme='dark']_&]:bg-slate-800 [html[data-theme='dark']_&]:text-slate-100 [html[data-theme='dark']_&]:focus-visible:ring-slate-400"
+      className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-sm text-white shadow-sm hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:shadow-md focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 [html[data-theme='dark']_&]:border-white [html[data-theme='dark']_&]:bg-white [html[data-theme='dark']_&]:text-slate-900 [html[data-theme='dark']_&]:focus-visible:ring-white"
     >
       {getThemeIcon()}
       <span className="hidden sm:inline">{getThemeLabel()}</span>

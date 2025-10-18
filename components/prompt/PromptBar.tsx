@@ -20,7 +20,7 @@ const StyleChip: React.FC<{
     onClick={onClick}
     aria-pressed={selected}
     className={[
-      "px-3 py-1.5 rounded-full text-sm border transition-colors",
+      "relative z-10 px-3 py-1.5 rounded-full text-sm border transition-colors",
       selected
         ? "bg-slate-900 text-white border-slate-900 shadow-sm [html[data-theme='dark']_&]:bg-slate-100 [html[data-theme='dark']_&]:text-slate-900 [html[data-theme='dark']_&]:border-slate-100"
         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 [html[data-theme='dark']_&]:bg-slate-800 [html[data-theme='dark']_&]:text-slate-300 [html[data-theme='dark']_&]:border-slate-600 [html[data-theme='dark']_&]:hover:bg-slate-700",
@@ -88,7 +88,7 @@ export default function PromptBar({
   };
 
   return (
-    <div className="mt-4 w-full max-w-full rounded-2xl border border-slate-200 bg-white p-2 sm:p-3 shadow-md overflow-hidden [html[data-theme='dark']_&]:border-slate-700 [html[data-theme='dark']_&]:bg-slate-800">
+    <div className="mt-4 w-full max-w-full rounded-2xl border border-slate-200 bg-white p-2 sm:p-3 shadow-md [html[data-theme='dark']_&]:border-slate-700 [html[data-theme='dark']_&]:bg-slate-800">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <div className="flex-1">
           <PromptTextarea
@@ -113,8 +113,8 @@ export default function PromptBar({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
-          <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm overflow-x-auto scrollbar-none [html[data-theme='dark']_&]:border-slate-700 [html[data-theme='dark']_&]:bg-slate-800">
+          <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none overflow-y-visible">
+            <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm [html[data-theme='dark']_&]:border-slate-700 [html[data-theme='dark']_&]:bg-slate-800">
               {nameStyles.map((style) => (
                 <StyleChip 
                   key={style.key} 

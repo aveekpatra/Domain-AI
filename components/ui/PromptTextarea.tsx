@@ -46,6 +46,7 @@ const PromptTextarea: React.FC<PromptTextareaProps> = ({
     leftIcon ? "pl-11" : "",
     multiline ? "min-h-[3.25rem]" : "",
     "resize-none leading-6",
+    "scrollbar-none",
     "[html[data-theme='dark']_&]:bg-slate-800 [html[data-theme='dark']_&]:text-slate-100 [html[data-theme='dark']_&]:placeholder:text-slate-400",
     "[html[data-theme='dark']_&]:border-slate-600",
     "[html[data-theme='dark']_&]:focus:border-slate-500",

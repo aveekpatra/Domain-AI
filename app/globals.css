@@ -125,6 +125,27 @@ body {
   }
 }
 
+/* Float animation for decorative orbs */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Shimmer animation for cards */
+@keyframes shimmer-card {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Rainbow rotating ring wrapper */
 .btn-rainbow {
   position: relative;

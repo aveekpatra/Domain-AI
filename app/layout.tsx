@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "Find the perfect domain with AI. Explore TLDs, compare registrar pricing, and register via affiliate links.",
   icons: {
-    icon: "/convex.svg",
+    icon: "/main-img.png",
   },
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light">
       <head>
         <script
           dangerouslySetInnerHTML={{

@@ -3,8 +3,8 @@ import BackgroundTop from "@/components/BackgroundTop";
 import Hero from "@/components/Hero";
 import FeatureTiles from "@/components/FeatureTiles";
 import DarkShowcase from "@/components/DarkShowcase";
-import UseCases from "@/components/UseCases";
-import CTASection from "@/components/CTASection";
+import FAQAccordion from "@/components/FAQAccordion";
+import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -16,8 +16,8 @@ export default function Home() {
         <Hero />
         <FeatureTiles />
         <DarkShowcase />
-        <UseCases />
-        <CTASection />
+        <FAQAccordion />
+        <ContactForm />
       </main>
       <Footer />
     </div>
